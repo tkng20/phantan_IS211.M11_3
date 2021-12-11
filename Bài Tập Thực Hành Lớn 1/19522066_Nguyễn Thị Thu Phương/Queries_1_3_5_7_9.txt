@@ -1,0 +1,115 @@
+-- 1. Thống kê doanh thu của từng tuần từ đầu tháng đến ngày hiện tại 
+-- Hiện thị theo thứ tự: mã chi nhánh, DOANH THU, tuần THU
+select * 
+from (
+    select sum(tongtien) DoanhThu, Week, 'CN0002' as ChiNhanh 
+    from hoadon hd1 join (   select x, trunc( (x-next_day(trunc(x,'mm')-8, 'sun'))/7 )+1 week
+                            from (  select trunc(sysdate,'MM') +rownum-1 x
+                                    from all_objects
+                                    where rownum <= (   SELECT extract(day from LAST_DAY(SYSDATE)) AS last_day_of_mnth
+                                                        FROM dual
+                                                     )
+                                ) 
+                    ) a on EXTRACT(MONTH FROM a.x) = EXTRACT(MONTH FROM HD1.NGAYTT)
+    group by a.week
+    UNION
+    select sum(tongtien) DoanhThu, Week, 'CN0003' as ChiNhanh 
+    from C##CN03.hoadon@BTL1 hd2 join (   select x, trunc( (x-next_day(trunc(x,'mm')-8, 'sun'))/7 )+1 week
+                            from (  select trunc(sysdate,'MM') +rownum-1 x
+                                    from all_objects
+                                    where rownum <= (   SELECT extract(day from LAST_DAY(SYSDATE)) AS last_day_of_mnth
+                                                        FROM dual
+                                                     )
+                                ) 
+                    ) a on EXTRACT(MONTH FROM a.x) = EXTRACT(MONTH FROM HD2.NGAYTT)
+    group by a.week
+)
+order by chinhanh, week;
+
+
+
+
+-- 3. Hiển thị danh sách nhân viên ưu tú nhất của chi nhánh 3 theo thang hien tai (nhân viên thực hiện lập hóa đơn nhiều nhất)
+
+SELECT  EXTRACT(Month FROM NGAYTT) as thang,CN2.MACN, CN2.TENCN, NV2.MANV, NV2.HoTen, COUNT(HD2.MAHD) AS SL_HOADON 
+        FROM C##CN03.HOADON@BTL1 HD2, C##CN03.NHANVIEN@BTL1 NV2,  C##CN03.CHINHANH@BTL1 CN2
+        WHERE HD2.MANV = NV2.MANV AND CN2.MACN = NV2.MACN AND EXTRACT(Month FROM SYSDATE) = EXTRACT(Month FROM NGAYTT)
+        GROUP BY  EXTRACT(Month FROM HD2.NGAYTT), CN2.MACN, CN2.TENCN, NV2.MANV,NV2.HOTEN
+        HAVING COUNT (HD2.MAHD) >= ALL(  SELECT COUNT (HD3.MAHD)
+                                        FROM C##CN03.HOADON@BTL1 HD3
+                                        WHERE  EXTRACT(Month FROM HD3.NGAYTT)= EXTRACT(Month FROM SYSDATE)
+                                        GROUP BY HD3.MANV
+                                        );
+            
+         
+
+--  5. Tìm kiếm những khách hàng VIP và ( khách hàng  đã và đang sử dụng dịch vụ trong vòng 1 năm ) của khách sạn. (để thống kê các khách hàng nên gửi thông báo ý mak)
+-- Nếu khách hàng VIP thì hiển thị VIP. còn không thì hiển thị (Than thiet)=> dùng case when 
+-- Hiên thị: mã kh, tenkh, làn cuối sử dụng dịch vụ tại ks, loại kh, thông tin gửiCV
+SELECT *
+FROM (
+    SELECT KH1.MAKH, KH1.TENKH, KH1.LOAIKH, CASE WHEN KH1.LOAIKH = 'thanhvien' THEN 'Uu dai cua thanh vien'
+                                                ELSE 'Uu dai cua khach hang'
+                                                END
+    FROM KHACHHANG_LUUTRU KH1 JOIN ( SELECT MAKH, MAX(NGAYTT) AS NGAYSUDUNG 
+                                    FROM HOADON
+                                    GROUP BY MAKH
+                                    ) HD1 ON HD1.MAKH = KH1.MAKH
+    WHERE (SYSDATE - 365) <= NGAYSUDUNG AND NGAYSUDUNG <= SYSDATE
+--    ORDER BY KH1.MAKH
+    UNION
+    SELECT KH2.MAKH, KH2.TENKH, KH2.LOAIKH, CASE WHEN KH2.LOAIKH = 'thanhvien' THEN 'Uu dai cua thanh vien'
+                                                ELSE 'Uu dai cua khach hang'
+                                                END
+    FROM C##CN03.KHACHHANG_LUUTRU@BTL1 KH2 JOIN ( SELECT MAKH, MAX(NGAYTT) AS NGAYSUDUNG 
+                                    FROM C##CN03.HOADON@BTL1
+                                    GROUP BY MAKH
+                                    ) HD2 ON HD2.MAKH = KH2.MAKH
+    WHERE (SYSDATE - 365) <= NGAYSUDUNG AND NGAYSUDUNG <= SYSDATE
+--    ORDER BY KH2.MAKH
+    )
+ORDER BY MAKH
+
+
+-- 7. Tìm khách hàng có quốc tịch là Việt Nam thuê phòng có mã .... với số lượng người trong phòng đó bằng với số người quy định của loại phòng đó 
+-- từ ngày .... đến ngày .... và có sử dụng ít nhất 2 dịch vụ của khách sạn trong thời gian thuê
+///Chú thíc: trong phần số lượng người trong phòng bằng số người quy định có thẻ lấy phụt thu vì khi số lượng người trong phòng = số ng quy định thì phụ thu là 0,05
+SELECT MAKH,TENKH
+FROM
+(SELECT KH.MAKH,KH.TENKH
+FROM HOADON HD, KHACHHANG_HIENTHI KH, PHIEUTHUEPHONG PTP, PHIEUDICHVU PDV
+WHERE HD.MAKH = KH.MAKH AND PTP.MAPTP = HD.MAPTP AND PDV.MAPDV = HD.MAPDV 
+AND KH.QUOCTICH = 'Việt Nam' AND  PDV.MAPDV IN ( SELECT CT_PDV.MAPDV
+                                                        FROM CT_PHIEUDICHVU CT_PDV
+                                                        GROUP BY CT_PDV.MAPDV
+                                                        HAVING COUNT (MADV) >= 2) AND PTP.MAPTP IN (
+                                                                                SELECT CT_PTP.MAPTP
+                                                                                FROM CT_PHIEUTHUEPHONG CT_PTP,PHONG P,LOAIPHONG LP 
+                                                                                WHERE CT_PTP.MAPH = P.MAPH AND P.MALOAIPH= LP.MALOAIPH AND CT_PTP.SLNGUOI = LP.SONGUOI
+                                                                                AND CT_PTP.NGAYNP BETWEEN '15-FEB-2021' AND '26-FEB-2021'
+                                                                                )
+UNION
+SELECT KH2.MAKH,KH2.TENKH
+FROM C##CN03.HOADON@BTL1 HD2, C##CN03.KHACHHANG_HIENTHI@BTL1 KH2, C##CN03.PHIEUTHUEPHONG@BTL1 PTP2, C##CN03.PHIEUDICHVU@BTL1 PDV2
+WHERE HD2.MAKH = KH2.MAKH AND PTP2.MAPTP = HD2.MAPTP AND PDV2.MAPDV = HD2.MAPDV 
+AND KH2.QUOCTICH = 'Việt Nam' AND  PDV2.MAPDV IN ( SELECT CT_PDV2.MAPDV
+                                                        FROM C##CN03.CT_PHIEUDICHVU@BTL1 CT_PDV2
+                                                        GROUP BY CT_PDV2.MAPDV
+                                                        HAVING COUNT (MADV) >= 2) AND PTP2.MAPTP IN (
+                                                                                SELECT CT_PTP2.MAPTP
+                                                                                FROM C##CN03.CT_PHIEUTHUEPHONG@BTL1 CT_PTP2, C##CN03.PHONG@BTL1 P2, C##CN03.LOAIPHONG@BTL1 LP2 
+                                                                                WHERE CT_PTP2.MAPH = P2.MAPH AND P2.MALOAIPH= LP2.MALOAIPH AND CT_PTP2.SLNGUOI = LP2.SONGUOI
+                                                                                AND CT_PTP2.NGAYNP BETWEEN '15-FEB-2021' AND '26-FEB-2021'
+                                                                                GROUP BY CT_PTP2.MAPTP))
+GROUP BY MAKH, TENKH;
+
+-- 9. tim hóa đơn dc lập vào ngày thanh toan la vao thang 4 có mà có tính phí phụ thu của các phòng có đơn giá trên 1tr500 
+--do nhân viên có SDT = '0978604744' lập
+SELECT HD2.MAHD 
+FROM C##CN03.HOADON@BTL1 HD2, C##CN03.NHANVIEN@BTL1 NV2, C##CN03.PHIEUTHUEPHONG@BTL1 PTP2, C##CN03.CT_PHIEUTHUEPHONG@BTL1 CT_PTP2
+WHERE HD2.MANV = NV2.MANV AND PTP2.MAPTP = HD2.MAPTP AND PTP2.MAPTP = CT_PTP2.MAPTP
+AND EXTRACT (MONTH FROM HD2.NGAYTT ) = 1  AND NV2.SODT= '0969482744' AND CT_PTP2.PHUTHU IN (SELECT PHUTHU
+                                                                                            FROM C##CN03.CT_PHIEUTHUEPHONG@BTL1 CT_PTP3
+                                                                                            WHERE   PTP2.MAPTP = CT_PTP3.MAPTP  AND PHUTHU > 0)
+GROUP BY HD2.MAHD;
+  
