@@ -1,0 +1,151 @@
+create or replace PROCEDURE SHOW_INFORMATION_VACANCIES (V_MACN CHINHANH.MACN%TYPE)
+IS
+    NOT_EMPTY INT;
+    TYPE T_CHINHANH IS TABLE OF CHINHANH%ROWTYPE INDEX BY PLS_INTEGER;
+    TYPE T_KETHOP_PHONG_LOAIPHONG IS  RECORD (  MAPH PHONG.MAPH%TYPE,
+                    TENLOAIPH LOAIPHONG.TENLOAIPH%TYPE,
+                    DONGIA LOAIPHONG.DONGIA%TYPE,
+                    SONGUOI LOAIPHONG.SONGUOI%TYPE,
+                    MACN CHINHANH.MACN%TYPE
+                                            );
+    TYPE T_PHONG IS TABLE OF T_KETHOP_PHONG_LOAIPHONG INDEX BY PLS_INTEGER;  
+    V_CHINHANH T_CHINHANH;
+    V_PHONG_CHINHANH T_PHONG;
+    THONG_TIN_CN_VAL INT;
+
+    PROCEDURE THONG_TIN_CN IS
+        BEGIN
+            IF V_MACN IS NULL THEN
+                BEGIN
+                        SELECT MACN, TENCN, THANHPHO BULK COLLECT INTO V_CHINHANH 
+                        FROM (
+                                SELECT MACN, TENCN, THANHPHO
+                                FROM C##PUN_CN1.CHINHANH@DB_LINK_PUN_CN1
+                                UNION
+                                SELECT MACN, TENCN, THANHPHO  
+                                FROM C##PUN_CN2.CHINHANH
+                                )
+                        ORDER BY MACN;
+                        THONG_TIN_CN_VAL:=1;
+                    END;
+                END IF;
+            IF V_MACN IS NOT NULL THEN
+                BEGIN
+                    SELECT COUNT(*) INTO NOT_EMPTY
+                    FROM C##PUN_CN1.CHINHANH@DB_LINK_PUN_CN1
+                    WHERE MACN = V_MACN;
+                    IF NOT_EMPTY = 1 THEN 
+                        BEGIN
+                            SELECT MACN, TENCN, THANHPHO BULK COLLECT INTO V_CHINHANH
+                            FROM C##PUN_CN1.CHINHANH@DB_LINK_PUN_CN1;
+                            THONG_TIN_CN_VAL:=1;
+                        END;
+                    ELSE
+                        BEGIN
+                            SELECT COUNT(*) INTO NOT_EMPTY
+                            FROM C##PUN_CN2.CHINHANH
+                            WHERE MACN = V_MACN;
+                            IF NOT_EMPTY = 1 THEN 
+                                BEGIN
+                                    SELECT MACN, TENCN, THANHPHO BULK COLLECT INTO V_CHINHANH
+                                    FROM C##PUN_CN2.CHINHANH;
+                                    THONG_TIN_CN_VAL:=1;
+                                END;
+                            END IF;
+                        END;
+                    END IF;
+                END;
+            END IF;
+        END;
+
+    PROCEDURE HIEN_THI_PHONG_MOT_CN IS
+        BEGIN
+            SELECT COUNT(*) INTO NOT_EMPTY
+            FROM C##PUN_CN1.PHONG@DB_LINK_PUN_CN1 P JOIN C##PUN_CN1.LOAIPHONG@DB_LINK_PUN_CN1 LP ON P.MALOAIPH = LP.MALOAIPH
+            WHERE TINHTRANG = 'Trống' AND MACN = V_MACN;
+            IF NOT_EMPTY <> 0 THEN
+                BEGIN
+                    SELECT DISTINCT MAPH, TENLOAIPH, DONGIA, SONGUOI, MACN BULK COLLECT INTO V_PHONG_CHINHANH
+                    FROM C##PUN_CN1.PHONG@DB_LINK_PUN_CN1 P JOIN C##PUN_CN1.LOAIPHONG@DB_LINK_PUN_CN1 LP ON P.MALOAIPH = LP.MALOAIPH
+                    WHERE TINHTRANG ='Trống' AND MACN = 'CN0001'
+                    ORDER BY MAPH ASC;
+                END;
+            ELSE 
+                BEGIN
+                    SELECT COUNT(*) INTO NOT_EMPTY
+                    FROM C##PUN_CN2.PHONG P JOIN C##PUN_CN2.LOAIPHONG LP ON P.MALOAIPH = LP.MALOAIPH
+                    WHERE TINHTRANG = 'Trống' AND MACN = V_MACN;
+                    IF NOT_EMPTY <> 0 THEN
+                        BEGIN
+                            SELECT DISTINCT MAPH, TENLOAIPH, DONGIA, SONGUOI, MACN BULK COLLECT INTO V_PHONG_CHINHANH
+                            FROM C##PUN_CN2.PHONG P JOIN C##PUN_CN2.LOAIPHONG LP ON P.MALOAIPH = LP.MALOAIPH
+                            WHERE TINHTRANG = 'Trống' AND MACN = 'CN0002'
+                            ORDER BY MAPH ASC;
+                        END;
+                    END IF;
+                END;
+            END IF;
+        END;
+
+    PROCEDURE HIEN_THI_PHONG_BA_CN IS
+        BEGIN
+            SELECT MAPH, TENLOAIPH, DONGIA, SONGUOI, MACN BULK COLLECT INTO V_PHONG_CHINHANH
+            FROM (
+                    SELECT DISTINCT MAPH, TENLOAIPH, DONGIA, SONGUOI, MACN
+                    FROM C##PUN_CN1.PHONG@DB_LINK_PUN_CN1 P JOIN C##PUN_CN1.LOAIPHONG@DB_LINK_PUN_CN1 LP ON P.MALOAIPH = LP.MALOAIPH
+                    WHERE TINHTRANG = 'Trống' AND MACN = 'CN0001'
+                    UNION
+                    SELECT DISTINCT MAPH, TENLOAIPH, DONGIA, SONGUOI, MACN
+                    FROM C##PUN_CN2.PHONG P JOIN C##PUN_CN2.LOAIPHONG LP ON P.MALOAIPH = LP.MALOAIPH
+                    WHERE TINHTRANG = 'Trống' AND MACN = 'CN0002'
+                )
+                ORDER BY MACN ASC, MAPH ASC;
+                SELECT COUNT(*) INTO NOT_EMPTY
+                FROM V_PHONG_CHINHANH;
+        END;
+
+    PROCEDURE SHOW_INFORMATION_ROOM IS 
+        CHINHANH_INDEX PLS_INTEGER;
+        PHONG_CHINHANH_INDEX PLS_INTEGER;
+    BEGIN
+        CHINHANH_INDEX := V_CHINHANH.FIRST;
+        LOOP
+            EXIT WHEN CHINHANH_INDEX IS NULL;
+            DBMS_OUTPUT.PUT_LINE(V_CHINHANH(CHINHANH_INDEX).MACN ||'        '|| V_CHINHANH(CHINHANH_INDEX).TENCN||'        '|| V_CHINHANH(CHINHANH_INDEX).THANHPHO);
+
+            IF V_MACN IS NULL THEN
+                BEGIN
+                    HIEN_THI_PHONG_BA_CN;
+                END;
+            ELSE
+                BEGIN
+                    HIEN_THI_PHONG_MOT_CN;
+                END;
+            END IF;
+
+            FOR PHONG_CHINHANH_INDEX IN 1 .. V_PHONG_CHINHANH.COUNT
+            LOOP
+                DBMS_OUTPUT.PUT_LINE('                      '||V_PHONG_CHINHANH(PHONG_CHINHANH_INDEX).MAPH||'        '||V_PHONG_CHINHANH(PHONG_CHINHANH_INDEX).TENLOAIPH||'        '||V_PHONG_CHINHANH(PHONG_CHINHANH_INDEX).DONGIA||'        '||V_PHONG_CHINHANH(PHONG_CHINHANH_INDEX).SONGUOI);
+            END LOOP;               
+            CHINHANH_INDEX := V_CHINHANH.NEXT(CHINHANH_INDEX);
+        END LOOP;
+    END;
+BEGIN
+    THONG_TIN_CN_VAL :=0;
+    NOT_EMPTY := 0;
+    THONG_TIN_CN;
+    IF THONG_TIN_CN_VAL = 0 THEN
+        BEGIN
+            DBMS_OUTPUT.PUT_LINE('Khong ton tai chi nhanh can tim');
+        END;
+    ELSE
+        BEGIN
+            SHOW_INFORMATION_ROOM;
+            IF NOT_EMPTY = 0 THEN
+                BEGIN
+                    DBMS_OUTPUT.PUT_LINE('Khong ton tai du lieu phong con trong');
+                END;
+            END IF;
+        END;
+    END IF;
+END;
