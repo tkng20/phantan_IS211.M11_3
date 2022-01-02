@@ -1,0 +1,31 @@
+LoaiPhong - Phong : 1 LoaiPhong co nhieu Phong -> From Phong To LoaiPhong => ThuocLoaiPhong ( Ngoai - Chinh)
+Phong - CT_PhieuThuePhong: -> From CT_PhieuThuePhong To Phong => ThuePhong
+PhieuThuePhong - CT_PhieuThuePhong: -> From CT_PhieuThuePhong To PhieuThuePhong => ThuocPhieuThuePhong
+
+DichVu - CT_PhieuDichVu: -> From CT_DichVu To DichVu => ThueDichVu
+PhieuDichVu - CT_PhieuDichVu: -> From CT_PhieuDichVu To PhieuDichVu => ThuocPhieuDichVu
+
+KhachHang - HoaDon-> From HoaDon To KhachHang =>ThuocKhachHang
+NhanVien - HoaDon-> From HoaDon To NhanVien => TuNhanVien
+PhieuThuePhong - HoaDon-> From HoaDon To PhieuThuePhong => CoPhieuThuePhong
+PhieuDichVu - HoaDon-> From HoaDon To PhieuDichVu => CoPhieuDichVu
+
+ChiNhanh - KhachHang-> From HoaDon To KhachHang =>CoKhachHang
+NhanVien - ChiNhanh-> From HoaDon To NhanVien => CoNhanVien
+Phong - ChiNhanh-> From HoaDon To PhieuThuePhong => CoPhong
+
+
+create class ThuocLoaiPhong extends E
+create class ThuePhong extends E
+create class ThuocPhieuThuePhong extends E
+create class ThueDichVu extends E
+create class ThuocPhieuDichVu extends E
+
+create class ThuocKhachHang extends E
+create class TuNhanVien extends E
+create class CoPhieuThuePhong extends E
+create class CoPhieuDichVu extends E
+
+create class CoKhachHang extends E
+create class CoNhanVien extends E
+create class CoPhong extends E
