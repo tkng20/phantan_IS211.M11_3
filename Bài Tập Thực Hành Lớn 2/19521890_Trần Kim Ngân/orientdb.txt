@@ -1,0 +1,61 @@
+câu 1: top 3 khách hàng có giá trị hóa đơn cao nhất
+
+SELECT *
+FROM (
+        MATCH {
+            CLASS: HOADON, AS: A
+        }-ThuocKhachHang-{class: KHACHHANG, as: B}
+		RETURN B.MAKH AS ID_KHACHHANG, B.TENKH AS NAME_KHACHHANG, SUM(A.TONGTIEN) AS TOTAL
+  		GROUP BY B.MAKH, B.TENKH
+  		ORDER BY TOTAL DESC
+  		LIMIT 3
+)
+
+câu 2: top 3 dịch vụ được sd nhiều nhất
+
+SELECT *
+FROM (
+        MATCH{
+        CLASS:DICHVU, AS: P
+    }-THUEDICHVU-{
+        CLASS:CT_PHIEUDICHVU, AS: CTPTDV
+      }-ThuocPhieuThueDichVu-{
+        CLASS:PHIEUDICHVU, AS: PTDV
+      }
+      RETURN COUNT(P.MADV) AS SOLANTHUE, P.MADV
+  	  GROUP BY P.MADV
+      ORDER BY SOLANTHUE DESC 
+	LIMIT 3
+  )
+
+câu 3: Người lập nhiều hóa đơn nhất
+
+SELECT DISTINCT *
+FROM (
+        MATCH{
+        CLASS:NHANVIEN, AS: P
+    	}-TuNhanVien-{
+        CLASS:HOADON, AS: M
+      }
+      	RETURN P.HOTEN, COUNT(M.MAHD) AS SOLANLAP
+  		GROUP BY P.MANV
+  		ORDER BY SOLUONG DESC 
+  LIMIT 1
+  )
+
+câu 4: tìm thông tin khách hàng thuê phòng loại Deluxe Room vào tháng 2
+
+SELECT	DISTINCT KH.TENKH, KH.SDT, KH.DIACHI
+FROM (
+        MATCH
+  		{CLASS:KHACHHANG, AS:KH}-ThuocKhachHang-{CLASS:HOADON, AS:HD}
+  		-CoPhieuThuePhong-{
+    	CLASS:PHIEUTHUEPHONG, AS:PTP
+  		}-ThuocPhieuThuePhong-{CLASS:CT_PHIEUTHUEPHONG, AS:CTPTP}-ThuePhong-{
+    	CLASS:PHONG, AS:P
+  		}-ThuocLoaiPhong-{
+    	CLASS:LOAIPHONG, AS:LP
+  		}
+  		RETURN *
+  )
+ WHERE LP.TENLOAIPH="Deluxe Room" AND CTPTP.NGAYNP BETWEEN "2021-02-01" AND "2021-02-28"
