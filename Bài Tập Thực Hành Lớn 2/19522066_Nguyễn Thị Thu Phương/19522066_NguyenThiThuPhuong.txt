@@ -1,0 +1,26 @@
+create class ChiNhanh extends V 
+create property ChiNhanh.macn string
+create property ChiNhanh.tencn string
+create property ChiNhanh.thanhpho string
+
+create class LoaiPhong extends V
+create property LoaiPhong.maloaiph string
+create property LoaiPhong.tenloaiph string
+create property LoaiPhong.dongia decimal
+create property LoaiPhong.songuoi integer
+create property LoaiPhong.ghichu string
+
+create class DichVu extends V 
+create property DichVu.madv string
+create property DichVu.tendv string
+create property DichVu.giadv decimal
+
+create class PhieuDichVu extends V 
+create property PhieuDichVu.mapdv string
+create property PhieuDichVu.tiendv decimal
+
+create class CT_PhieuDichVu extends V 
+create property CT_PhieuDichVu.mapdv string
+create property CT_PhieuDichVu.madv string
+create property CT_PhieuDichVu.sldv integer
+create property CT_PhieuDichVu.ngaysd datetime

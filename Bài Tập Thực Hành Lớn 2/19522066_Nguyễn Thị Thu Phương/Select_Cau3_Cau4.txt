@@ -1,0 +1,25 @@
+3. Tìm hóa đơn được lập vào ngày 1/6/2021 có mà có tính phí phụ thu của các phòng có đơn giá trên 1tr500 do nhân viên có số điện thoại là 0369275023 lập
+SELECT DISTINCT *
+FROM (
+	MATCH{
+  		CLASS: NHANVIEN, AS:NV, WHERE:(SODT='0769482996')
+  	}-TuNhanVien-{CLASS: HOADON, AS: HD, WHERE:(NGAYTT='2021/06/01')}-CoPhieuThuePhong-{
+  	CLASS:PHIEUTHUEPHONG, AS:PTP}-ThuocPhieuThuePhong-{
+  	CLASS:CT_PHIEUTHUEPHONG, AS:CTPTP, WHERE:(PHUTHU > 0)}-ThuePhong-{CLASS:PHONG, AS:P}-ThuocLoaiPhong-{CLASS:LOAIPHONG, AS:LP, WHERE:(DONGIA>1500000)}
+    RETURN HD.MAHD, HD.MAKH
+    ORDER BY HD.MAHD 
+)
+4. Tìm khách hàng có quốc tịch là Việt Nam thuê phòng với số lượng người trong phòng đó bằng với số người quy định của loại phòng đó.
+SELECT DISTINCT HD.MAKH, KH.TENKH
+FROM (
+        MATCH{
+    	CLASS:CT_PHIEUTHUEPHONG, AS:CTPTP, WHERE:(PHUTHU != 0 )
+  		}-ThuocPhieuThuePhong-{
+    	CLASS:PHIEUTHUEPHONG, AS:PTP
+  		}-CoPhieuThuePhong-{
+    	CLASS:HOADON, AS:HD
+  		}-ThuocKhachHang-{
+    	CLASS:KHACHHANG, AS:KH, WHERE:(QUOCTIcH = 'Việt Nam')
+  		}
+  		RETURN *
+  )
