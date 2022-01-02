@@ -1,0 +1,19 @@
+create class Phong extends V
+create property Phong.maph string
+create property Phong.maloaiph string
+create property Phong.tinhtrang string
+create property Phong.ghichu string
+create property Phong.macn string
+
+
+create class PhieuThuePhong extends V
+create property PhieuThuePhong.maptp string
+create property PhieuThuePhong.tientp decimal
+
+create class CT_PhieuThuePhong extends V
+create property CT_PhieuThuePhong.maptp string
+create property CT_PhieuThuePhong.maph string
+create property CT_PhieuThuePhong.slnguoi integer
+create property CT_PhieuThuePhong.phuthu float
+create property CT_PhieuThuePhong.ngaynp datetime
+create property CT_PhieuThuePhong.ngaytptt datetime
