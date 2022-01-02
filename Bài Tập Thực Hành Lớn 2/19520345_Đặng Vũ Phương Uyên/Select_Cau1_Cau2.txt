@@ -1,0 +1,25 @@
+1. Thống kê tổng doanh thu của các khách hàng không phải là thành viên và kiểm tra xem khách hàng đó có tổng doanh thu có lớn hơn 50 triệu không? Nếu có thì xuất ra kết quả là Thành viên để phân loại khách hàng tiềm năng.
+SELECT *, IF(EVAL("REVENUE_KHACHHANG > 50000000"), 'Thanh vien' , 'Vang lai') as RESULT_KHACHHANG
+FROM (
+        MATCH {
+            CLASS: HOADON, AS: A
+        }-ThuocKhachHang-{class: KHACHHANG, as: B}
+		RETURN B.MAKH AS ID_KHACHHANG, B.TENKH AS NAME_KHACHHANG, SUM(A.TONGTIEN) AS REVENUE_KHACHHANG
+  		GROUP BY B.MAKH, B.TENKH
+  	
+)
+
+2. Thống kê các só lượng thuê phòng của phòng đó để tiến hành đề ra các chiến dịch nhằm khắc phục tình trạng trống phòng quá lâu
+SELECT *
+FROM (
+        MATCH{
+        CLASS:PHONG, AS: P
+    }-THUEPHONG-{
+        CLASS:CT_PHIEUTHUEPHONG, AS: CTPTP
+      }-ThuocPhieuThuePhong-{
+        CLASS:PHIEUTHUEPHONG, AS: PTP
+      }
+      RETURN COUNT(P.MAPH) AS SOLANTHUE, P.MAPH
+  	  GROUP BY P.MAPH
+      ORDER BY SOLANTHUE ASC
+  )

@@ -1,0 +1,28 @@
+create class KhachHang extends V
+create property KhachHang.makh string
+create property KhachHang.tenkh string
+create property KhachHang.cmnd string
+create property KhachHang.quoctich string
+create property KhachHang.ngaysinh datetime
+create property KhachHang.diachi string
+create property KhachHang.sdt string
+create property KhachHang.loaikh string
+create property KhachHang.macn string
+
+
+create class NhanVien extends V
+create property NhanVien.manv string
+create property NhanVien.hoten string
+create property NhanVien.maql string
+create property NhanVien.sodt string
+create property NhanVien.luong decimal
+create property NhanVien.macn string
+
+create class HoaDon extends V
+create property HoaDon.mahd string
+create property HoaDon.ngaytt datetime
+create property HoaDon.tongtien decimal
+create property HoaDon.manv string
+create property HoaDon.makh string
+create property HoaDon.maptp string
+create property HoaDon.mapdv string
